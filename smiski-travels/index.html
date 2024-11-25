@@ -1,0 +1,12 @@
+---
+layout: default
+title: Smiski's Travels
+---
+
+<h1>Smiski's Adventures</h1>
+
+<div class="image-gallery">
+  {% for image in site.data.images %}
+    <img src="{{ image.url }}" alt="{{ image.description }}">
+  {% endfor %}
+</div>
