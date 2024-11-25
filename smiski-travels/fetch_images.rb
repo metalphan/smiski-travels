@@ -1,35 +1,29 @@
-require 'googleauth'
-require 'googleauth/transport/requests'
-require 'googleapiclient'
-require '.env'
+require 'net/http'
+require 'json'
 
-# Replace with your credentials
-CLIENT_ID = CLIENT_ID
-CLIENT_SECRET = CLIENT_SECRET
-REFRESH_TOKEN = 'YOUR_REFRESH_TOKEN'
+def fetch_images(url, output_file)
+  uri = URI(url)
+  response = Net::HTTP.get_response(uri)
 
-# Authenticate
-creds = Google::Auth::Credentials.new(
-  CLIENT_ID,
-  CLIENT_SECRET,
-  refresh_token: REFRESH_TOKEN
-)
+  if response.code == '200'
+    image_data = JSON.parse(response.body)
 
-service = Google::Apis::PhotoslibraryV1::PhotoslibraryService.new
-service.authorization = creds
+    # Open the output JSON file for writing
+    File.open(output_file, 'w') do |file|
+      file.write(JSON.pretty_generate(image_data))
+    end
 
-# Get album details
-album_id = 'YOUR_ALBUM_ID'
-album = service.albums().get(albumId: album_id).execute
-
-# Get media items in the album
-media_items = service.mediaItems().list(albumId: album_id, pageSize: 100).execute
-
-# Write image URLs to a file
-File.open('image_urls.txt', 'w') do |file|
-  media_items['mediaItems'].each do |item|
-    base_url = item['baseUrl']
-    image_url = "#{base_url}=w1024" # Adjust size as needed
-    file.write("#{image_url}\n")
+    puts "Image data has been successfully written to #{output_file}."
+  else
+    puts "Error fetching images: #{response.code}"
+    puts response.body
   end
 end
+
+# Replace with your Cloudflare Worker API endpoint
+url = 'https://smiski-photos-worker.metalphan.workers.dev/?album_id=ALbRIU_103UAj7do5yTn8_h49i8AlymjoWa6Oa9UQFMRYr9uM_aWe5r3QP1o4C3dLSAFdcVFshRz4wD3gvrQLJe6PxNPsWml3w'
+
+# Output file to save the JSON data
+output_file = 'import_data.json'
+
+fetch_images(url, output_file)

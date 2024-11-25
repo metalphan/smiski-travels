@@ -1,8 +1,9 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "smiski-photos-worker"
 main = "src/index.js"
-compatibility_date = "2024-11-12"
+compatibility_date = "2024-11-25"
 compatibility_flags = ["nodejs_compat"]
+
 
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
@@ -24,7 +25,6 @@ enabled = true
 # - https://developers.cloudflare.com/workers/configuration/secrets/
 # [vars]
 # MY_VARIABLE = "production_value"
-GOOGLE_ACCESS_TOKEN = "ya29.a0AeDClZC04KBs5wzgX1ehb0uDe6M2dJOVedv4r1W0gfwfQSM284VlkWoiEyrVGQS-y_WMaLRG0bFpcl4aK7GDRp0VZQTq45vIKDTJLxLHUenEG4asI9ELqZ5UqavNfT8oadmAft93YrLNYo3r11KKV7hpdrwSTaV0thr-aNR3aCgYKAbYSARMSFQHGX2MisZw5QwI_xkelEjmnahRcGg0175"
 
 # Bind the Workers AI model catalog. Run machine learning models, powered by serverless GPUs, on Cloudflare’s global network
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#workers-ai
