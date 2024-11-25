@@ -1,3 +1,5 @@
+# Created 2024-11-24 with lots of elp from Github and Gemini
+
 require 'net/http'
 require 'json'
 
