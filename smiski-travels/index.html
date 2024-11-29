@@ -5,8 +5,29 @@ title: Smiski's Travels
 
 <h1>Smiski's Adventures</h1>
 
-<div class="image-gallery">
-  {% for image in site.data.images %}
-    <img src="{{ image.url }}" alt="{{ image.description }}">
-  {% endfor %}
+<div id="gallery" class="image-gallery">
+  <!-- Images will be dynamically loaded here -->
 </div>
+
+<script>
+  async function loadGallery() {
+    try {
+      const response = await fetch("https://smiski-travel.us/photos");
+      const images = await response.json();
+      const gallery = document.getElementById("gallery");
+
+      images.forEach(image => {
+        const img = document.createElement("img");
+        img.src = image.url;
+        img.alt = image.filename;
+        img.style.width = "200px";
+        img.style.margin = "10px";
+        gallery.appendChild(img);
+      });
+    } catch (error) {
+      console.error("Error loading images:", error);
+    }
+  }
+
+  loadGallery();
+</script>

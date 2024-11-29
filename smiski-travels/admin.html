@@ -1,0 +1,8 @@
+<h1>Admin: Refresh Photos</h1>
+<button onclick="refreshPhotos()">Refresh Photos</button>
+<script>
+  async function refreshPhotos() {
+    const response = await fetch("https://smiski-travel.us/photos", { method: "POST" });
+    alert(await response.text());
+  }
+</script>
