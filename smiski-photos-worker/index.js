@@ -1,14 +1,17 @@
 async function getSecrets(env) {
-	const refreshToken = await env.SECRETS.get("REFRESH_TOKEN");
-	const clientId = await env.SECRETS.get("CLIENT_ID");
-	const clientSecret = await env.SECRETS.get("CLIENT_SECRET");
-  
-	if (!refreshToken || !clientId || !clientSecret) {
-	  throw new Error("Missing Google API secrets in KV");
-	}
-  
-	return { refreshToken, clientId, clientSecret };
-  }
+    const refreshToken = await env.SECRETS.get("REFRESH_TOKEN");
+    const clientId = await env.SECRETS.get("CLIENT_ID");
+    const clientSecret = await env.SECRETS.get("CLIENT_SECRET");
+
+    console.log("Retrieved secrets:", { refreshToken, clientId, clientSecret }); // Debugging log
+
+    if (!refreshToken || !clientId || !clientSecret) {
+        throw new Error("Missing Google API secrets in KV");
+    }
+
+    return { refreshToken, clientId, clientSecret };
+}
+
   
   async function refreshToken(env) {
 	const { refreshToken, clientId, clientSecret } = await getSecrets(env);
@@ -64,27 +67,78 @@ async function getSecrets(env) {
   }
   
   export default {
-	async fetch(request, env) {
-	  if (request.method === "POST") {
-		await updatePhotos(env);
-		return new Response("Photo data updated successfully in KV!", { status: 200 });
-	  }
-  
-	  if (request.method === "GET") {
-		const keys = await env.IMAGE_LINKS.list();
-		const images = [];
-  
-		for (const key of keys.keys) {
-		  const value = await env.IMAGE_LINKS.get(key.name);
-		  images.push(JSON.parse(value));
-		}
-  
-		return new Response(JSON.stringify(images), {
-		  headers: { "Content-Type": "application/json" },
-		});
-	  }
-  
-	  return new Response("Invalid method", { status: 405 });
-	},
-  };
-  
+    async fetch(request, env) {
+        const url = new URL(request.url);
+
+        if (url.pathname === "/photos") {
+            // Fetch photo metadata from KV
+            const images = await env.IMAGE_LINKS.list();
+            const photos = images.keys.map((key) => {
+                return {
+                    url: `https://smiski-travel.us/proxy/${key.name}`,
+                    filename: key.name,
+                };
+            });
+
+            return new Response(JSON.stringify(photos), {
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                },
+            });
+        }
+
+		if (url.pathname.startsWith("/proxy/")) {
+			const photoId = url.pathname.split("/proxy/")[1];
+			console.log(`Fetching photo with ID: ${photoId}`);
+		  
+			const accessToken = await refreshToken(env);
+			console.log(`Access token: ${accessToken}`);
+		  
+			const googlePhotosUrl = `https://photoslibrary.googleapis.com/v1/mediaItems/${photoId}`;
+			console.log(`Google Photos API URL: ${googlePhotosUrl}`);
+		  
+			const response = await fetch(googlePhotosUrl, {
+			  headers: {
+				Authorization: `Bearer ${accessToken}`,
+			  },
+			});
+		  
+			if (!response.ok) {
+			  console.error(`Error fetching image: ${response.statusText}`);
+			  return new Response(`Error fetching image: ${response.statusText}`, { status: response.status });
+			}
+		  
+			const data = await response.json();
+			console.log(`Google Photos API Response: ${JSON.stringify(data)}`);
+		  
+			// Validate if `baseUrl` exists
+			if (!data.baseUrl) {
+			  console.error("Base URL missing in API response");
+			  return new Response("Base URL missing in API response", { status: 500 });
+			}
+		  
+			const imageUrl = `${data.baseUrl}=w${data.mediaMetadata.width}-h${data.mediaMetadata.height}`;
+			console.log(`Resolved Image URL: ${imageUrl}`);
+		  
+			// Fetch the actual image
+			const imageResponse = await fetch(imageUrl);
+		  
+			if (!imageResponse.ok) {
+			  console.error(`Error fetching image from baseUrl: ${imageResponse.statusText}`);
+			  return new Response(`Error fetching image from baseUrl: ${imageResponse.statusText}`, { status: imageResponse.status });
+			}
+		  
+			console.log("Image fetched successfully, returning response");
+			return new Response(imageResponse.body, {
+			  headers: {
+				"Content-Type": imageResponse.headers.get("Content-Type"),
+				"Cache-Control": "public, max-age=3600",
+			  },
+			});
+		  }
+		  
+
+        return new Response("Not Found", { status: 404 });
+    },
+};
